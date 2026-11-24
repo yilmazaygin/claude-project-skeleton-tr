@@ -1,0 +1,55 @@
+# Günlük işler. Hedefler hazır yığından gelir; yeni hedef yalnızca kullanıcı isteyince eklenir (docker.md).
+# Canlı hedefler (live-*) kullanıcı canlı demeden verilmez.
+
+local = docker compose -f compose.local.yaml
+live = docker compose -f compose.live.yaml
+
+.PHONY: up down live-up live-down logs sh migrate test test-e2e lint doctor ci
+
+up:
+	$(local) up -d
+
+down:
+	$(local) down
+
+live-up:
+	$(live) up -d
+
+live-down:
+	$(live) down
+
+# Son 200 satır. Tek servis için: make logs s=backend
+logs:
+	$(local) logs --tail=200 $(s)
+
+sh:
+	$(local) exec backend sh
+
+migrate:
+	$(local) exec -T backend php artisan migrate --no-interaction
+
+# Testler yalnızca "testing" veritabanında çalışır; yoksa önce açılır.
+test:
+	$(local) run --rm db-test-hazirla
+	$(local) exec -T backend php artisan test
+	$(local) exec -T frontend npx vitest run
+
+# >>> ek:e2e
+test-e2e:
+	$(local) --profile e2e run --rm e2e
+
+# <<< ek:e2e
+lint:
+	$(local) exec -T backend ./vendor/bin/pint --test
+	$(local) exec -T frontend npm run lint
+
+doctor:
+	python3 .claude/doktor.py
+
+# Temiz bir makinede (GitHub Actions) baştan sona: kur, aç, göç, test, lint.
+ci:
+	$(local) build
+	$(local) run --rm --no-deps backend composer install --no-interaction --no-progress
+	$(local) run --rm --no-deps frontend npm install --no-audit --no-fund
+	$(local) up -d
+	$(MAKE) migrate test lint

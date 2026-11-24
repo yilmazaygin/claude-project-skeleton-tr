@@ -1,0 +1,9 @@
+# Yerel ortam.
+# Konteynerin içindeki port standart kalır. Bilgisayarın dışarı açtığı port doluysa yalnızca burada değişir.
+# Konteyner adı, proje adı ile hizmet adının tire ile birleşmesidir. Örnek: my-project-redis.
+# Bu ad her serviste container_name satırıyla açıkça yazılır.
+# Servisler, yığın seçilince eklenir.
+
+name: local
+
+services: {}

@@ -1,0 +1,9 @@
+# Canlı sunucu. Yerel ortamın provası değildir.
+# Dışarı yalnızca 80 ve 443 açılır. Veritabanı portu yayımlanmaz.
+# Konteyner adı, proje adı ile hizmet adının tire ile birleşmesidir. Örnek: my-project-redis.
+# Bu ad her serviste container_name satırıyla açıkça yazılır.
+# Servisler, yığın seçilince eklenir.
+
+name: live
+
+services: {}

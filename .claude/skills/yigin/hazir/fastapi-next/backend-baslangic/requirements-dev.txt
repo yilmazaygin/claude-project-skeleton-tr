@@ -1,0 +1,7 @@
+# Yalnızca geliştirme ve test için; canlı imaja girmez (Dockerfile'ın dev hedefi kurar).
+# Çalıştırma: make test (pytest), make lint (ruff).
+# Sürümler 2026-11-23 tarihinde pip'in çözdüğü ve denenen sürümlerdir.
+pytest==9.2.0
+pytest-asyncio==1.5.0
+httpx==0.28.1
+ruff==0.17.6

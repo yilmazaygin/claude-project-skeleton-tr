@@ -1,0 +1,12 @@
+{
+  "tur": "iskelet",
+  "surum": "2026-11-24",
+  "korumalar": {
+    "git": true,
+    "ssh": true,
+    "docker-hacim": true,
+    "defter": true,
+    "env-ornek": true
+  },
+  "kaldirilanlar": []
+}

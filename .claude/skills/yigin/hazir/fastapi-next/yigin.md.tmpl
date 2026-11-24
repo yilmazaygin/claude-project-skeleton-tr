@@ -1,0 +1,77 @@
+# Yığın
+
+Hazır yığın: **fastapi-next**. `kur.py yapilandir` ile yazıldı; yığın değişince bu dosya aynı işte güncellenir.
+
+- **Backend:** FastAPI (Python 3.13, SQLAlchemy 2 async, Alembic). API sürümlüdür: bütün uç noktalar `/api/v1/...` altında; geriye uyumsuz değişiklik yeni sürüme yazılır.
+- **Frontend:** Next.js 16 (React, TypeScript, Tailwind, App Router); `/api` isteklerini Docker ağı içinden backend'e aktarır, CORS gerekmez.
+- **Veri:** Postgres 17, Redis 8.
+- **Ters vekil:** proje başına Traefik; canlıda önünde Nginx Proxy Manager.
+
+## Proje
+
+- Proje adı: `__PROJE__`. Compose proje adları `__PROJE__-local` ve `__PROJE__-live`; ağlar `__PROJE__-local-network` ve `__PROJE__-network`.
+- Proje numarası: `__NO__`. Bilgisayar portları: Traefik `80__NO__`, Postgres `54__NO__`, Redis `63__NO__`.
+- Ekler:
+  # >>> ek:mailpit
+  - mailpit: giden e-postalar `mail.localhost:80__NO__` adresinde görünür (yalnızca yerel).
+  # <<< ek:mailpit
+  # >>> ek:queue
+  - queue: Celery; `worker` (high, default, low; 120 sn), `worker-long` (long; 900 sn), `flower` paneli (yalnızca yerel).
+  # <<< ek:queue
+  # >>> ek:scheduler
+  - scheduler: `celery beat`; görevler `app/worker.py` içindeki `beat_schedule`'da.
+  # <<< ek:scheduler
+  # >>> ek:e2e
+  - e2e: Playwright; `make test-e2e`.
+  # <<< ek:e2e
+
+## Servisler
+
+| Servis | container_name | İmaj | Konteyner portu |
+|---|---|---|---|
+| socket-proxy | `__PROJE__-socket-proxy` | tecnativa/docker-socket-proxy:3.4 | 2375 (iç ağ) |
+| traefik | `__PROJE__-traefik` | traefik:v3.6 | 80 |
+| backend | `__PROJE__-backend` | docker/python/Dockerfile (Python 3.13) | 8000 |
+# >>> ek:queue
+| worker | `__PROJE__-worker` | backend imajı | yok |
+| worker-long | `__PROJE__-worker-long` | backend imajı | yok |
+| flower | `__PROJE__-flower` | backend imajı (yalnızca yerel) | 5555 |
+# <<< ek:queue
+# >>> ek:scheduler
+| beat | `__PROJE__-beat` | backend imajı | yok |
+# <<< ek:scheduler
+| frontend | `__PROJE__-frontend` | docker/frontend/Dockerfile (Node 24) | 3000 |
+| db | `__PROJE__-db` | postgres:17-alpine | 5432 |
+| redis | `__PROJE__-redis` | redis:8-alpine | 6379 |
+| db-test-hazirla | `__PROJE__-db-test-hazirla` | postgres:17-alpine (tek seferlik, yalnızca yerel) | yok |
+# >>> ek:mailpit
+| mailpit | `__PROJE__-mailpit` | axllent/mailpit:v1.27 (yalnızca yerel) | 8025, 1025 |
+# <<< ek:mailpit
+# >>> ek:e2e
+| e2e | `__PROJE__-e2e` | mcr.microsoft.com/playwright:v1.65.1-noble (yalnızca yerel, `profiles: [e2e]`) | yok |
+# <<< ek:e2e
+
+## Adresler (yerel)
+
+- arayüz `http://app.localhost:80__NO__`, API sağlık `http://api.localhost:80__NO__/api/v1/health`, belgeler `http://api.localhost:80__NO__/api/docs`, Traefik paneli `http://traefik.localhost:80__NO__`
+# >>> ek:queue
+- Flower `http://flower.localhost:80__NO__`
+# <<< ek:queue
+
+## Komutlar
+
+Günlük işler Makefile'dadır: `make up`, `make down`, `make logs [s=servis]`, `make sh`, `make migrate`, `make test`, `make lint`, `make doctor`, `make ci`.
+
+- **Test:** `make test`. Backend `pytest` (yalnızca `testing` veritabanı; koruma `tests/conftest.py`), frontend `npx vitest run`.
+- **Lint:** `make lint`. Backend ruff, frontend ESLint.
+- **Göç:** model `app/models/` altına yazılır; `docker compose -f compose.local.yaml exec backend alembic revision --autogenerate -m "aciklama"`, ardından `make migrate`.
+- **CI:** `.github/workflows/test.yml` her push'ta `make ci` çalıştırır.
+
+## Canlı
+
+- Zorunlu: `APP_DOMAIN`. İsteğe bağlı: `API_DOMAIN`. Canlı compose doğrulaması: `APP_DOMAIN=dogrulama.test docker compose -f compose.live.yaml config --quiet`.
+- NPM, `__PROJE__-network` ağına bir kez bağlanır ve `APP_DOMAIN` → `__PROJE__-traefik:80` yönlendirmesi tanımlanır (HAZIR.md → Canlıda Nginx Proxy Manager).
+
+## Sürüm notu
+
+Python 3.13, FastAPI 0.165.0, SQLAlchemy 2.1.9, Alembic 1.20.1, Celery 5.7.0, Node 24, Next.js 16.4.6, Postgres 17, Redis 8, Traefik 3.6, Mailpit 1.27, docker-socket-proxy 3.4. Next.js belgeleri konteynerdedir: `/app/node_modules/next/dist/docs`.

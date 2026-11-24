@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(date:*)",
+      "Bash(make up)",
+      "Bash(make down)",
+      "Bash(make test)",
+      "Bash(make test-e2e)",
+      "Bash(make lint)",
+      "Bash(make doctor)",
+      "Bash(make logs:*)",
+      "Bash(python3 .claude/doktor.py)",
+      "Bash(docker compose -f compose.local.yaml ps:*)",
+      "Bash(docker compose -f compose.local.yaml logs:*)"
+    ],
+    "ask": [
+      "Bash(make live-up:*)",
+      "Bash(make live-down:*)",
+      "Bash(docker compose -f compose.live.yaml:*)",
+      "Read(./.env)",
+      "Edit(./.env)",
+      "Edit(./.claude/iskelet.json)",
+      "Write(./.claude/iskelet.json)",
+      "Edit(./.claude/settings.json)",
+      "Write(./.claude/settings.json)"
+    ],
+    "deny": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git reset:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(git tag:*)",
+      "Bash(git config:*)",
+      "Bash(git clean:*)",
+      "Bash(git rm:*)",
+      "Bash(git mv:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git revert:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(sftp:*)",
+      "Bash(docker compose down -v:*)",
+      "Bash(docker compose down --volumes:*)",
+      "Bash(docker compose -f compose.local.yaml down -v:*)",
+      "Bash(docker compose -f compose.local.yaml down --volumes:*)",
+      "Bash(docker compose -f compose.live.yaml down -v:*)",
+      "Bash(docker compose -f compose.live.yaml down --volumes:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(docker volume prune:*)",
+      "Bash(docker system prune:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash_bekci.py; c=$?; if [ $c -ne 0 ] && [ $c -ne 2 ]; then echo 'Proje hook çalışamadı (python3 yok veya hata verdi). İşlem güvenlik için engellendi.' >&2; exit 2; fi; exit $c"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/dosya_bekci.py; c=$?; if [ $c -ne 0 ] && [ $c -ne 2 ]; then echo 'Proje hook çalışamadı (python3 yok veya hata verdi). İşlem güvenlik için engellendi.' >&2; exit 2; fi; exit $c"
+          }
+        ]
+      }
+    ]
+  }
+}

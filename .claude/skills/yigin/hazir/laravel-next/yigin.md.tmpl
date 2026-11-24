@@ -1,0 +1,75 @@
+# Yığın
+
+Hazır yığın: **laravel-next**. `kur.py yapilandir` ile yazıldı; yığın değişince bu dosya aynı işte güncellenir.
+
+- **Backend:** Laravel (PHP 8.4-FPM + nginx), Sanctum çerez oturumu.
+- **Frontend:** Next.js 16 (React, TypeScript, Tailwind, App Router); `/api` ve `/sanctum` isteklerini Docker ağı içinden nginx'e aktarır, CORS gerekmez.
+- **Veri:** Postgres 17, Redis 8 (önbellek, oturum, kuyruk).
+- **Ters vekil:** proje başına Traefik; canlıda önünde Nginx Proxy Manager.
+
+## Proje
+
+- Proje adı: `__PROJE__`. Compose proje adları `__PROJE__-local` ve `__PROJE__-live`; ağlar `__PROJE__-local-network` ve `__PROJE__-network`.
+- Proje numarası: `__NO__`. Bilgisayar portları: Traefik `80__NO__`, Postgres `54__NO__`, Redis `63__NO__`.
+- Ekler:
+  # >>> ek:mailpit
+  - mailpit: giden e-postalar `mail.localhost:80__NO__` adresinde görünür (yalnızca yerel).
+  # <<< ek:mailpit
+  # >>> ek:queue
+  - queue: Laravel Horizon; `supervisor-default` (high, default, low; 120 sn) ve `supervisor-long` (long; 900 sn).
+  # <<< ek:queue
+  # >>> ek:scheduler
+  - scheduler: `php artisan schedule:work`.
+  # <<< ek:scheduler
+  # >>> ek:e2e
+  - e2e: Playwright; `make test-e2e`.
+  # <<< ek:e2e
+
+## Servisler
+
+| Servis | container_name | İmaj | Konteyner portu |
+|---|---|---|---|
+| socket-proxy | `__PROJE__-socket-proxy` | tecnativa/docker-socket-proxy:3.4 | 2375 (iç ağ) |
+| traefik | `__PROJE__-traefik` | traefik:v3.6 | 80 |
+| nginx | `__PROJE__-nginx` | nginx:1.28-alpine | 80 |
+| backend | `__PROJE__-backend` | docker/php/Dockerfile (PHP 8.4-FPM) | 9000 |
+# >>> ek:queue
+| horizon | `__PROJE__-horizon` | backend imajı | yok |
+# <<< ek:queue
+# >>> ek:scheduler
+| scheduler | `__PROJE__-scheduler` | backend imajı | yok |
+# <<< ek:scheduler
+| frontend | `__PROJE__-frontend` | docker/frontend/Dockerfile (Node 24) | 3000 |
+| db | `__PROJE__-db` | postgres:17-alpine | 5432 |
+| redis | `__PROJE__-redis` | redis:8-alpine | 6379 |
+| db-test-hazirla | `__PROJE__-db-test-hazirla` | postgres:17-alpine (tek seferlik, yalnızca yerel) | yok |
+# >>> ek:mailpit
+| mailpit | `__PROJE__-mailpit` | axllent/mailpit:v1.27 (yalnızca yerel) | 8025, 1025 |
+# <<< ek:mailpit
+# >>> ek:e2e
+| e2e | `__PROJE__-e2e` | mcr.microsoft.com/playwright:v1.65.1-noble (yalnızca yerel, `profiles: [e2e]`) | yok |
+# <<< ek:e2e
+
+## Adresler (yerel)
+
+- arayüz `http://app.localhost:80__NO__`, API `http://api.localhost:80__NO__`, Traefik paneli `http://traefik.localhost:80__NO__`
+# >>> ek:queue
+- Horizon `http://api.localhost:80__NO__/horizon`
+# <<< ek:queue
+
+## Komutlar
+
+Günlük işler Makefile'dadır: `make up`, `make down`, `make logs [s=servis]`, `make sh`, `make migrate`, `make test`, `make lint`, `make doctor`, `make ci`.
+
+- **Test:** `make test`. Backend `php artisan test` (yalnızca `testing` veritabanı; koruma `tests/TestCase.php`), frontend `npx vitest run`.
+- **Lint:** `make lint`. Backend pint, frontend ESLint.
+- **CI:** `.github/workflows/test.yml` her push'ta `make ci` çalıştırır.
+
+## Canlı
+
+- Zorunlu: `APP_DOMAIN`. İsteğe bağlı: `API_DOMAIN`. Canlı compose doğrulaması: `APP_DOMAIN=dogrulama.test docker compose -f compose.live.yaml config --quiet`.
+- NPM, `__PROJE__-network` ağına bir kez bağlanır ve `APP_DOMAIN` → `__PROJE__-traefik:80` yönlendirmesi tanımlanır (HAZIR.md → Canlıda Nginx Proxy Manager).
+
+## Sürüm notu
+
+PHP 8.4, Laravel 13, Node 24, Next.js 16.4.6, Postgres 17, Redis 8, nginx 1.28, Traefik 3.6, Mailpit 1.27, docker-socket-proxy 3.4. Next.js belgeleri konteynerdedir: `/app/node_modules/next/dist/docs`.

@@ -1,0 +1,245 @@
+# Yerel ortam. Canlıya mümkün olduğunca benzer; her proje kendi Traefik'ini ve Mailpit'ini taşır.
+# Bilgisayar portları proje numarasından türer: Traefik 80__NO__, Postgres 54__NO__, Redis 63__NO__.
+# Konteynerin içindeki port standart kalır. Bilgisayarın dışarı açtığı port yalnızca burada değişir.
+# Konteyner adı, proje adı ile hizmet adının tire ile birleşmesidir. Örnek: my-project-redis.
+# Bu ad her serviste container_name satırıyla açıkça yazılır.
+# Adresler: app.localhost:80__NO__, api.localhost:80__NO__, mail.localhost:80__NO__, traefik.localhost:80__NO__
+
+name: __PROJE__-local
+
+x-laravel-env: &laravel-env
+  DB_CONNECTION: pgsql
+  DB_HOST: db
+  DB_PORT: "5432"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  SANCTUM_STATEFUL_DOMAINS: app.localhost:80__NO__
+  # >>> ek:queue
+  QUEUE_CONNECTION: redis
+  REDIS_QUEUE_RETRY_AFTER: "960"
+  # <<< ek:queue
+  # >>> ek-yok:queue
+  QUEUE_CONNECTION: sync
+  # <<< ek-yok:queue
+  # >>> ek:mailpit
+  MAIL_MAILER: smtp
+  MAIL_HOST: mailpit
+  MAIL_PORT: "1025"
+  # <<< ek:mailpit
+  # >>> ek-yok:mailpit
+  MAIL_MAILER: log
+  # <<< ek-yok:mailpit
+
+x-backend: &backend
+  # PID 1'de sinyalleri iletir; yoksa Horizon ve PHP kapanma sinyalini almaz ve zorla öldürülür.
+  init: true
+  image: __PROJE__-backend:dev
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: dev
+    args:
+      # Konteyner kullanıcısı bilgisayardaki kullanıcıyla aynı kimliği alır (.env: HOST_UID, HOST_GID).
+      UID: ${HOST_UID:-1000}
+      GID: ${HOST_GID:-1000}
+  env_file: .env
+  environment: *laravel-env
+  volumes:
+    - ./backend:/var/www/html
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  # Traefik Docker'a doğrudan değil, yalnızca konteyner listeleme izni veren bu vekil üzerinden erişir.
+  socket-proxy:
+    container_name: __PROJE__-socket-proxy
+    image: tecnativa/docker-socket-proxy:3.4
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket
+
+  traefik:
+    container_name: __PROJE__-traefik
+    image: traefik:v3.6
+    command:
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=__PROJE__-local-network
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+    ports:
+      - "80__NO__:80"
+    depends_on:
+      - socket-proxy
+    networks:
+      - default
+      - socket
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.__PROJE__-traefik.rule=Host(`traefik.localhost`)
+      - traefik.http.routers.__PROJE__-traefik.entrypoints=web
+      - traefik.http.routers.__PROJE__-traefik.service=api@internal
+
+  nginx:
+    container_name: __PROJE__-nginx
+    image: nginx:1.28-alpine
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./backend:/var/www/html:ro
+    depends_on:
+      - backend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.__PROJE__-api.rule=Host(`api.localhost`)
+      - traefik.http.routers.__PROJE__-api.entrypoints=web
+      - traefik.http.services.__PROJE__-api.loadbalancer.server.port=80
+
+  backend:
+    <<: *backend
+    container_name: __PROJE__-backend
+
+  # >>> ek:queue
+  # Kuyruklar ve zaman aşımları backend/config/horizon.php içindedir (HAZIR.md → Kuyruklar).
+  # Kod değişince Horizon yeniden başlatılır: docker compose -f compose.local.yaml restart horizon
+  horizon:
+    <<: *backend
+    container_name: __PROJE__-horizon
+    command: ["php", "artisan", "horizon"]
+    stop_grace_period: 16m
+  # <<< ek:queue
+
+  # >>> ek:scheduler
+  scheduler:
+    <<: *backend
+    container_name: __PROJE__-scheduler
+    command: ["php", "artisan", "schedule:work"]
+  # <<< ek:scheduler
+
+  frontend:
+    container_name: __PROJE__-frontend
+    init: true
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      target: dev
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    env_file: .env
+    environment:
+      INTERNAL_API_URL: http://nginx
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next:/app/.next
+    depends_on:
+      - nginx
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.__PROJE__-app.rule=Host(`app.localhost`)
+      - traefik.http.routers.__PROJE__-app.entrypoints=web
+      - traefik.http.services.__PROJE__-app.loadbalancer.server.port=3000
+
+  # Testlerin veritabanı ("testing"). Yoksa açar, varsa dokunmaz. Yalnızca yerelde.
+  db-test-hazirla:
+    container_name: __PROJE__-db-test-hazirla
+    image: postgres:17-alpine
+    # postgres imajı veri klasörünü VOLUME tanımlar; tmpfs olmadan her açılışta boş bir adsız hacim kalır.
+    tmpfs:
+      - /var/lib/postgresql/data
+    environment:
+      PGHOST: db
+      PGUSER: ${DB_USERNAME}
+      PGPASSWORD: ${DB_PASSWORD}
+      PGDATABASE: ${DB_DATABASE}
+    command: ["sh", "-c", "psql -tAc \"SELECT 1 FROM pg_database WHERE datname='testing'\" | grep -q 1 || psql -c 'CREATE DATABASE testing'"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # >>> ek:e2e
+  # Playwright ile uçtan uca testler. make up ile açılmaz:
+  #   docker compose -f compose.local.yaml --profile e2e run --rm e2e
+  # Traefik'in ağını paylaşır; tarayıcıdaki app.localhost doğrudan projenin Traefik'ine gider.
+  # İmaj sürümü frontend/package.json içindeki @playwright/test sürümüyle birebir aynı olmalıdır.
+  e2e:
+    container_name: __PROJE__-e2e
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
+    profiles: ["e2e"]
+    network_mode: "service:traefik"
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    working_dir: /app
+    environment:
+      HOME: /tmp
+      CI: "1"
+      E2E_ADRES: http://app.localhost
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    command: ["npx", "playwright", "test"]
+    depends_on:
+      - frontend
+  # <<< ek:e2e
+
+  db:
+    container_name: __PROJE__-db
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "54__NO__:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    container_name: __PROJE__-redis
+    image: redis:8-alpine
+    ports:
+      - "63__NO__:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # >>> ek:mailpit
+  mailpit:
+    container_name: __PROJE__-mailpit
+    image: axllent/mailpit:v1.27
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.__PROJE__-mail.rule=Host(`mail.localhost`)
+      - traefik.http.routers.__PROJE__-mail.entrypoints=web
+      - traefik.http.services.__PROJE__-mail.loadbalancer.server.port=8025
+  # <<< ek:mailpit
+
+networks:
+  default:
+    name: __PROJE__-local-network
+  # Yalnızca traefik ve socket-proxy bu ağdadır; dışarıya kapalıdır.
+  socket:
+    internal: true
+
+volumes:
+  db-data:
+  redis-data:
+  frontend-node-modules:
+  frontend-next:

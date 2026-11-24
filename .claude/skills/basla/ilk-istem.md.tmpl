@@ -1,0 +1,48 @@
+# İlk istem
+
+Bu dosya, projenin ilk kodunu oluşturacak istemdir. `/basla` sırasında kullanıcıyla birlikte yazıldı. Uygulamak için yeni bir mesajda: **"docs/proje/ilk-istem.md dosyasını uygula."**
+
+Uygulayan ajan önce bu dosyayı, `docs/proje/hakkinda.md`, `docs/proje/yigin.md` ve aşağıda atıf yapılan mantık belgelerini okur. Kurallara uyar (`.claude/rules/`). İş geniştir: önce plan modu, onaydan sonra kod.
+
+## Hedef
+
+<!-- İlk sürümde neyin çalışır olacağı, tek paragraf. Örnek: "Süper admin işletme ekler; işletme sahibi menüsünü kategori ve ürünlerle düzenler; ziyaretçi QR kodla menüyü telefonda görür." -->
+
+## Adım 1: kodu oluştur
+
+```bash
+python3 .claude/skills/yigin/kur.py kod
+```
+
+Betik uygulamayı konteynerde oluşturur, hazır dosyaları yerleştirir, uygulamayı açar, göçleri, testleri ve lint'i çalıştırır. Yarıda kalırsa nedenini yazar; sorun giderilince aynı komut yeniden çalıştırılır.
+
+## Kurulacak parçalar
+
+<!-- /kural ac adımlarının uygulama klasörü olmadığı için beklettiği parçalar; kural, parça ve PARCALAR.md adımıyla. Yoksa "Yok." -->
+
+## Yapılacaklar
+
+<!-- Sayfalar ve davranışlar. Her madde ilgili mantık belgesine atıf yapar. Örnek:
+- Süper admin paneli: işletme listesi, ekleme, askıya alma (docs/mantik/yetkilendirme.md)
+- Menü düzenleme: kategori ve ürün sırası, fiyat, görünürlük (docs/mantik/menu-yapisi.md)
+-->
+
+## Tasarım
+
+<!-- Tarz, referanslar, renk ve yazı tercihleri. Tasarıma başlamadan önce kullanılacak skill'ler adıyla. -->
+
+## Kapsam dışı
+
+<!-- İlk sürümde yapılmayacaklar. -->
+
+## Sonraki sürümler
+
+<!-- İlk sürümden sonraya bırakılanlar. -->
+
+## Bitti ölçütü
+
+- Yapılacaklar listesindeki her davranışın testi var; `make test` geçiyor.
+- `make lint` temiz, `make doctor` sorun yok.
+- Atlanan arayüz veya test teknik borç olarak yazıldı (`/td`).
+- Her ayrı değişiklik değişiklik defterinde (`/changelog`).
+- Mantık belgelerinin "Açık sorular" bölümündeki konularda tahmin yapılmadı; sorulup belgeye işlendi.

@@ -1,0 +1,155 @@
+# Canlı sunucu. Yerel ortamın provası değildir.
+# Yol: Nginx Proxy Manager (80/443, SSL) → __PROJE__-traefik:80 → servisler.
+# Bu dosya hiçbir portu dışarı açmaz. Veritabanı portu yayımlanmaz. Flower canlıda yoktur.
+# Proje kendi ağını (__PROJE__-network) açar; NPM bu ağa sunucuda bir kez bağlanır:
+#   docker network connect __PROJE__-network <npm-konteyneri>
+# Konteyner adı, proje adı ile hizmet adının tire ile birleşmesidir. Örnek: my-project-redis.
+# Bu ad her serviste container_name satırıyla açıkça yazılır.
+
+name: __PROJE__-live
+
+x-python-env: &python-env
+  DB_HOST: db
+  DB_PORT: "5432"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  # APP_DOMAIN boşsa canlı dosya açılmaz.
+  APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN .env içinde canlı alan adıyla doldurulmalı}
+
+x-backend: &backend
+  image: __PROJE__-backend:prod
+  build:
+    context: .
+    dockerfile: docker/python/Dockerfile
+    target: prod
+  # PID 1'de sinyalleri iletir; yoksa uvicorn ve Celery kapanma sinyalini almaz ve zorla öldürülür.
+  init: true
+  env_file: .env
+  environment: *python-env
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  # Traefik Docker'a doğrudan değil, yalnızca konteyner listeleme izni veren bu vekil üzerinden erişir.
+  socket-proxy:
+    container_name: __PROJE__-socket-proxy
+    image: tecnativa/docker-socket-proxy:3.4
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - socket
+
+  traefik:
+    container_name: __PROJE__-traefik
+    image: traefik:v3.6
+    command:
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=__PROJE__-network
+      - --entrypoints.web.address=:80
+      # NPM'nin gönderdiği X-Forwarded-Proto/Host korunur. Traefik'e yalnızca Docker ağından erişilir.
+      - --entrypoints.web.forwardedheaders.insecure=true
+      - --log.level=WARN
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    networks:
+      - default
+      - socket
+
+  backend:
+    <<: *backend
+    container_name: __PROJE__-backend
+    # API_DOMAIN boşsa kural .invalid alan adına düşer ve hiçbir istekle eşleşmez.
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.__PROJE__-api.rule=Host(`${API_DOMAIN:-api.invalid}`)
+      - traefik.http.routers.__PROJE__-api.entrypoints=web
+      - traefik.http.services.__PROJE__-api.loadbalancer.server.port=8000
+
+  # >>> ek:queue
+  worker:
+    <<: *backend
+    container_name: __PROJE__-worker
+    command: ["celery", "-A", "app.worker", "worker", "-Q", "high,default,low", "-n", "kisa@%h", "--loglevel=info", "--time-limit=120", "--soft-time-limit=110", "--concurrency=4"]
+    stop_grace_period: 130s
+
+  worker-long:
+    <<: *backend
+    container_name: __PROJE__-worker-long
+    command: ["celery", "-A", "app.worker", "worker", "-Q", "long", "-n", "uzun@%h", "--loglevel=info", "--time-limit=900", "--soft-time-limit=880", "--concurrency=2"]
+    stop_grace_period: 16m
+  # <<< ek:queue
+
+  # >>> ek:scheduler
+  beat:
+    <<: *backend
+    container_name: __PROJE__-beat
+    command: ["celery", "-A", "app.worker", "beat", "--loglevel=info", "--schedule=/tmp/celerybeat-schedule"]
+  # <<< ek:scheduler
+
+  frontend:
+    container_name: __PROJE__-frontend
+    init: true
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      target: prod
+    env_file: .env
+    environment:
+      INTERNAL_API_URL: http://backend:8000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.__PROJE__-app.rule=Host(`${APP_DOMAIN:?APP_DOMAIN .env içinde canlı alan adıyla doldurulmalı}`)
+      - traefik.http.routers.__PROJE__-app.entrypoints=web
+      - traefik.http.services.__PROJE__-app.loadbalancer.server.port=3000
+
+  db:
+    container_name: __PROJE__-db
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    container_name: __PROJE__-redis
+    image: redis:8-alpine
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  default:
+    name: __PROJE__-network
+  # Yalnızca traefik ve socket-proxy bu ağdadır; dışarıya ve NPM'e kapalıdır.
+  socket:
+    internal: true
+
+volumes:
+  db-data:
+  redis-data:

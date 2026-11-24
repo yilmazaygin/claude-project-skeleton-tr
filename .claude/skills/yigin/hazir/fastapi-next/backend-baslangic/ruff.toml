@@ -1,0 +1,16 @@
+# Lint: make lint (ruff check .). Göç dosyaları Alembic'in ürettiği koddur, denetlenmez.
+target-version = "py313"
+line-length = 120
+extend-exclude = ["alembic/versions"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[lint.isort]
+# Projedeki alembic/ klasörü, alembic paketini proje kodu sandırmasın.
+known-first-party = ["app"]
+known-third-party = ["alembic"]
+
+[lint.flake8-bugbear]
+# FastAPI bağımlılıkları argüman varsayılanında çağrılır; bu kalıp FastAPI'nin standart kullanımıdır.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body", "fastapi.Header"]

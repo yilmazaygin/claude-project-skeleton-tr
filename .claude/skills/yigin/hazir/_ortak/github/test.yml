@@ -1,0 +1,26 @@
+# Her push ve pull request'te temiz bir makinede kurar ve testleri çalıştırır.
+# Asıl iş `make ci` içindedir; bu dosya yalnızca onu çağırır. make ci yerelde de aynen çalışır.
+# .env, kur.py'nin yerel değer üretimiyle oluşturulur; gerçek gizli değer gerekmez.
+
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Yerel .env üret
+        run: python3 .claude/skills/yigin/kur.py env
+
+      - name: Kur, aç, göç, test, lint
+        run: make ci
+
+      - name: Kapat
+        if: always()
+        run: make down

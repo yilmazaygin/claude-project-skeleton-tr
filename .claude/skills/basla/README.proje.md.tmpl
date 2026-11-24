@@ -1,0 +1,40 @@
+# <Proje adı>
+
+<Tek cümlelik tanım: ne yapar, kim için.>
+
+<İki üç cümlelik açıklama: çözdüğü sorun, ana özellikler.>
+
+## Özellikler
+
+- <Ana özellik 1>
+- <Ana özellik 2>
+- <Ana özellik 3>
+
+## Yığın
+
+<Hazır yığın ve ekler, ör. Laravel + Next.js + Postgres + Redis, Horizon, Mailpit.> Ayrıntı: [docs/proje/yigin.md](docs/proje/yigin.md).
+
+## Çalıştırma
+
+Gerekenler: Docker, `make`, `python3`. Bilgisayarda PHP, Node veya Python gerekmez.
+
+```bash
+make up        # yerel ortamı aç
+make test      # testler
+make doctor    # sağlık kontrolü
+```
+
+Adresler (yerel): arayüz `http://app.localhost:80<NN>`, API `http://api.localhost:80<NN>`.
+
+İlk kurulumda `.env` dosyası `kur.py` ile üretilir. Yeni bir makinede: `.env.example` dosyasını `.env` olarak kopyalayıp `python3 .claude/skills/yigin/kur.py env` çalıştırın.
+
+## Belgeler
+
+- [docs/proje/hakkinda.md](docs/proje/hakkinda.md): ürün, roller, kapsam
+- [docs/mantik/](docs/mantik/): davranışların nasıl işlediği
+- [docs/kayitlar/](docs/kayitlar/): değişiklikler ve teknik borçlar
+- [CLAUDE.md](CLAUDE.md): Claude Code ile çalışma kuralları
+
+## Geliştirme
+
+Bu proje [claude-project-skeleton](<iskelet deposunun adresi>) iskeletinden başlatıldı. Kurallar `.claude/rules/` altındadır ve Claude Code her oturumda bunlara uyar.
