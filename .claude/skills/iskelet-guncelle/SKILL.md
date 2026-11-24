@@ -19,8 +19,9 @@ argument-hint: "<iskelet klasörünün yolu>"
 
 ## 2. Ne değişti?
 
-- Projenin sürümü `.claude/iskelet.json` dosyasındaki `surum` alanındadır (tarih). Dosya veya alan yoksa "bilinmiyor" sayılır.
-- İskeletin `.claude/iskelet-gecmisi/degisiklikler.md` dosyasından bu tarihten **sonraki** satırlar okunur ve kullanıcıya kısaca özetlenir. Sürüm bilinmiyorsa son 20 satır gösterilir.
+- Projenin sürümü `.claude/iskelet.json` dosyasındaki `surum` alanındadır (SemVer, ör. `1.0.0`). Dosya veya alan yoksa "bilinmiyor" sayılır.
+- İskeletin `CHANGELOG.md` dosyasından projenin sürümünden **yeni** olan bölümler okunur ve kullanıcıya kısaca özetlenir. Sürüm bilinmiyorsa son iki bölüm gösterilir.
+- **Ana sürüm farkı** (ör. `1.x` → `2.0.0`): bölümde yazan elle yapılacak işler ayrıca vurgulanır ve kopyalamadan önce yapılır.
 
 ## 3. Karşılaştır
 
@@ -34,6 +35,7 @@ Karşılaştırma yalnızca okuyarak yapılır: `diff -rq` ile liste, `diff -u` 
 | `.claude/opsiyonel-kurallar/` | aynı | |
 | `.claude/doktor.py` | aynı | |
 | `.claude/iskelet.json` | aynı | Yalnızca `surum` alanı güncellenir (5. adım). |
+| `CHANGELOG.md`, `LICENSE` | — | Karşılaştırılmaz: iskeletin kendi dosyalarıdır, projeye kopyalanmaz. |
 | `.claude/settings.json` | aynı | Projeye özel satırlar taşır (araç engeli). |
 | `CLAUDE.md`, `docs/README.md` | aynı | CLAUDE.md projeye özel bölüm taşır ("Açık isteğe bağlı kurallar"). |
 

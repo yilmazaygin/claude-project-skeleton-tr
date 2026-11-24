@@ -85,10 +85,12 @@ Hook'lar bilgisayardaki `python3` ile çalışır. `python3` yoksa veya hook hat
 
 - `.claude/iskelet.json`:
   - `tur`: `iskelet` (bu deponun kendisi) veya `proje` (`/basla` ile başlatılmış);
-  - `surum`: iskeletin sürüm tarihi;
+  - `surum`: iskeletin SemVer sürümü (projede: açıldığı sürüm);
   - `korumalar`;
   - `kaldirilanlar`: `/basla` sırasında silinenler; `/iskelet-guncelle` bunları yeniden önermez.
 - `.claude/iskelet-gecmisi/` iskeletin kendi geliştirme geçmişi (değişiklikler ve teknik borçlar). `tur: iskelet` iken kayıtlar oraya yazılır; projede `/basla` bu klasörü siler.
+- `CHANGELOG.md` iskeletin herkese açık sürüm notları (SemVer); `LICENSE` iskeletin MIT lisansı. İkisi de iskeletindir: projede `/basla` siler, lisansı projeye göre sorar.
+- **Yeni sürüm** (yalnızca iskelette): `CHANGELOG.md` dosyasına yeni bölüm yazılır ve `iskelet.json` içindeki `surum` aynı işte yükseltilir. Tag ve GitHub release'i kullanıcı oluşturur.
 - `docs/` belgeler ve kayıtlar. Hangi belgenin nereye konacağı `docs/README.md` dosyasındadır. Projenin defterleri `docs/kayitlar/` altındadır ve boş başlar. İlk prompt `docs/proje/ilk-istem.md` dosyasındadır (`/basla` yazar).
 - `.dev/` geçici dosyalar. Yolu verilmedikçe bakılmaz.
 - `Makefile`, `compose.local.yaml`, `compose.live.yaml` çalıştırma. `.claude/doktor.py` sağlık kontrolü (`make doctor`).

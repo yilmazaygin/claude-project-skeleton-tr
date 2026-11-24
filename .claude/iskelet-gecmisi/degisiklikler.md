@@ -97,3 +97,9 @@ Her değişiklik tek satırdır. Sütunlar: Tarih Saat | Alan | Tür | Not
 2026-11-24 13:56 | iskelet | değişti | mantik-belgeleri kuralına birlikte yazma bölümü ve belge iskeleti eklendi
 2026-11-24 13:56 | iskelet | değişti | CLAUDE.md oturum başında /basla hatırlatıyor
 2026-11-24 13:56 | iskelet | değişti | kök README iskeleti GitHub sayfası olarak anlatıyor
+2026-11-24 14:06 | iskelet | eklendi | herkese açık CHANGELOG.md eklendi; sürümleme SemVer, iskelet.json surum alanı 1.0.0
+2026-11-24 14:06 | iskelet | değişti | /basla projenin lisansını soruyor; iskeletin LICENSE ve CHANGELOG.md dosyaları projeye taşınmıyor
+2026-11-24 14:06 | iskelet | değişti | /iskelet-guncelle sürüm farkını CHANGELOG.md bölümlerinden özetliyor
+2026-11-24 14:06 | iskelet | değişti | README'ye sürüm ve lisans rozetleri, lisans bölümü ve sürüm çıkarma notu eklendi
+2026-11-24 14:10 | iskelet | eklendi | MIT lisansı (LICENSE) eklendi
+2026-11-24 14:12 | iskelet | değişti | README kuralları, bekçileri, kayıt defterlerini, mantık belgelerini, skill'leri ve sürümleri ayrıntılı anlatıyor

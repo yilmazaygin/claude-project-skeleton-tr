@@ -66,6 +66,7 @@ Yalnızca anlatımdan ve düzeltmelerden çıkmayanlar sorulur. Katalog ve her c
 | Çekirdek kurallar | Hepsi kalsın mı? Özellikle: Git salt okunur (`git.md`), SSH yasağı. İlk şık "Hepsi kalsın". `veri.md` kaldırılmak istenirse veri korumasının kalkacağı söylenir ve ikinci kez onay istenir. | `sadelestirme.md` 2. adım |
 | Skill'ler | `/iskelet-guncelle` kalsın mı (iskeletten güncelleme alınacak mı)? | `sadelestirme.md` 3. adım |
 | Tasarım | Tasarımda kullanılacak skill'ler, referans siteler, renk ve yazı tercihleri | `hakkinda.md` ve ilk prompt |
+| Lisans | Projenin lisansı: "Kapalı kaynak, lisans dosyası yok (Önerilen)", "MIT", başka. İskeletin MIT lisansı projeye geçmez. | `LICENSE` ve README |
 | Diğer | Dil (tek, çok), e-posta gönderimi, ödeme, dosya yükleme gibi anlatımda geçen ama net olmayan konular | `hakkinda.md` ve ilgili mantık belgesi |
 
 - **İsteğe bağlı kuralın soruları:** açılması seçilen her isteğe bağlı kuralın dosyası okunur; "Devreye alma" sorularından cevabı bilinmeyenler de bu adımda sorulur.
@@ -95,7 +96,7 @@ Seçilen her belge için `mantik-belgeleri.md` kuralındaki "Birlikte yazma" uyg
 
 Plan moduna geç. Planda şunlar bulunur:
 
-- değişecek proje türü (`tur: proje`) ve silinecek `.claude/iskelet-gecmisi/`;
+- değişecek proje türü (`tur: proje`); silinecek iskelet dosyaları (`.claude/iskelet-gecmisi/`, `CHANGELOG.md`, iskeletin `LICENSE` dosyası) ve projenin lisansı;
 - `hakkinda.md` taslağının başlıkları;
 - yığın: hazır yığın, proje adı, numara, ekler, portlar, yazılacak dosyalar;
 - açılacak isteğe bağlı kurallar ve bekleyen parçaları;
@@ -109,7 +110,8 @@ Onay gelmezse sor: "Plan moduna onay vermediniz, ne yapmamı istersiniz?"
 
 Sırayla:
 
-1. **Proje türü:** `.claude/iskelet.json` içinde `tur` alanı `proje` yapılır (Edit; Claude Code onaylatır). Sonra `rm -r .claude/iskelet-gecmisi` (iskeletin geçmişi; projede gereksiz).
+1. **Proje türü:** `.claude/iskelet.json` içinde `tur` alanı `proje` yapılır (Edit; Claude Code onaylatır). `surum` alanına dokunulmaz: projenin hangi iskelet sürümünden açıldığını gösterir. Sonra iskeletin kendi dosyaları silinir: `rm -r .claude/iskelet-gecmisi CHANGELOG.md` (iskeletin geçmişi ve sürüm notları; projede gereksiz).
+   **Lisans:** iskeletin `LICENSE` dosyası (MIT, iskeletin sahibine ait) silinir. Kullanıcı projeye bir lisans seçtiyse yeni `LICENSE` yazılır; telif satırındaki ad ve yıl kullanıcıya sorulur, uydurulmaz.
 2. **`docs/proje/hakkinda.md`:** 2. adımdaki başlıklarla yazılır. Bunlara ek olarak:
    - "Tasarım" altında kullanılacak skill'ler;
    - "Yapılacak skill'ler";

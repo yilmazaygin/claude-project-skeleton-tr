@@ -1,6 +1,6 @@
 {
   "tur": "iskelet",
-  "surum": "2026-11-24",
+  "surum": "1.0.0",
   "korumalar": {
     "git": true,
     "ssh": true,
